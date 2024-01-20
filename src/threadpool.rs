@@ -7,7 +7,7 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 #[derive(Debug)]
 struct Worker {
     id: usize,
-    thread: thread::JoinHandle<()>,
+    thread: Option<thread::JoinHandle<()>>,
 }
 
 impl Worker {
@@ -20,18 +20,46 @@ impl Worker {
 
     fn build(id: usize, receiver: Arc<Mutex<Receiver<Job>>>) -> Result<Self, std::io::Error> {
         let thread = std::thread::Builder::new().spawn(move || loop {
-            let job: Job = receiver.lock().unwrap().recv().unwrap();
-            job()
+            let message = receiver.lock().unwrap().recv();
+
+            match message {
+                Ok(job) => {
+                    println!("Worker {id} got a job; executing.");
+
+                    job();
+                }
+                Err(_) => {
+                    println!("Worker {id} disconnected; shutting down.");
+                    break;
+                }
+            }
         })?;
 
-        Ok(Self { id, thread })
+        Ok(Self {
+            id,
+            thread: Some(thread),
+        })
     }
 }
 
 #[derive(Debug)]
 pub struct ThreadPool {
-    threads: Vec<Worker>,
-    sender: Sender<Job>,
+    workers: Vec<Worker>,
+    sender: Option<Sender<Job>>,
+}
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        drop(self.sender.take());
+
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+
+            if let Some(thread) = worker.thread.take() {
+                thread.join().unwrap()
+            };
+        }
+    }
 }
 
 impl ThreadPool {
@@ -47,17 +75,17 @@ impl ThreadPool {
 
         let (tx, rx) = mpsc::channel();
 
-        let mut threads = Vec::with_capacity(size);
+        let mut workers = Vec::with_capacity(size);
 
         let receiver = Arc::new(Mutex::new(rx));
 
         for id in 0..size {
-            threads.push(Worker::new(id, Arc::clone(&receiver)));
+            workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
 
         Self {
-            threads,
-            sender: tx,
+            workers,
+            sender: Some(tx),
         }
     }
 
@@ -67,6 +95,6 @@ impl ThreadPool {
     {
         let job = Box::new(f);
 
-        self.sender.send(job).unwrap();
+        self.sender.as_ref().unwrap().send(job).unwrap()
     }
 }
