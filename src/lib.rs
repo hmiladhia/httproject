@@ -1,7 +1,7 @@
 use std::{
     fs,
     io::{prelude::*, BufReader},
-    net::{TcpListener, TcpStream},
+    net::TcpStream,
     thread,
     time::Duration,
 };
@@ -9,6 +9,7 @@ use crate::response::Response;
 
 
 pub mod response;
+pub mod threadpool;
 
 
 fn get_response(request: Vec<String>) -> Response {
