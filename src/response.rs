@@ -46,5 +46,4 @@ impl Display for Response {
         let formatted = format!("{status_line}\r\n{header}\r\n\r\n{body}\r\n", body=self.body);
         write!(f, "{formatted}")
     }
-
 }

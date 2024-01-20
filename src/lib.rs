@@ -1,30 +1,33 @@
-use std::{
-    fs,
-    net::TcpStream,
-    io::prelude::*,
-    thread,
-    time::Duration,
-};
+use std::{fs, io::prelude::*, net::TcpStream, path::Path};
 
-use crate::response::Response;
 use crate::request::Request;
+use crate::response::Response;
 
-pub mod response;
 pub mod request;
+pub mod response;
 pub mod threadpool;
 
 
-fn get_response(request: &Request) -> Response {
-    let (status, file_name) = match &request.uri[..] {
-        "/" => (200, "hello.html"),
-        "/sleep" => {
-            thread::sleep(Duration::from_secs(5));
-            (200, "hello.html")
-        }
-        _ => (404, "404.html"),
+fn get_response(request: &Request, base_path: &Path) -> Response {
+    let file_name = match &request.uri[..] {
+        "/" => "/index",
+        uri => uri,
     };
 
-    let contents = match fs::read_to_string(file_name) {
+    let file_name = if file_name.starts_with("/") {
+        &file_name[1..]
+    } else {
+        file_name
+    };
+
+    let p = base_path.join(&file_name).with_extension("html");
+
+    let (status, p) = match p.exists() {
+        true => (200, p),
+        false => (404, base_path.join("errors").join("404.html"))
+    };
+
+    let contents = match fs::read_to_string(p) {
         Ok(c) => c,
         Err(_) => return Response::failed(),
     };
@@ -35,11 +38,11 @@ fn get_response(request: &Request) -> Response {
     Response::new(status, headers, contents)
 }
 
-pub fn handle_connection(mut stream: TcpStream) {
+pub fn handle_connection(mut stream: TcpStream, base_path: &Path) {
     let request = Request::from_stream(&mut stream);
 
     let response = match request {
-        Ok(r) => get_response(&r),
+        Ok(r) => get_response(&r, base_path),
         Err(_) => Response::empty(400),
     };
 

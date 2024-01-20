@@ -1,4 +1,6 @@
 use std::net::TcpListener;
+use std::path::Path;
+
 
 use httproject::handle_connection;
 use httproject::threadpool::ThreadPool;
@@ -12,7 +14,7 @@ fn main() {
         let stream = stream.unwrap();
 
         pool.execute(|| {
-            handle_connection(stream);
+            handle_connection(stream, Path::new("static"));
         });
     }
 }
