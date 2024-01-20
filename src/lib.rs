@@ -7,24 +7,21 @@ pub mod request;
 pub mod response;
 pub mod threadpool;
 
-
 fn get_response(request: &Request, base_path: &Path) -> Response {
-    let file_name = match &request.uri[..] {
+    let mut file_name = match &request.uri[..] {
         "/" => "/index",
         uri => uri,
     };
 
-    let file_name = if file_name.starts_with("/") {
-        &file_name[1..]
-    } else {
-        file_name
+    if let Some(stripped) = file_name.strip_prefix('/') {
+        file_name = stripped
     };
 
-    let p = base_path.join(&file_name).with_extension("html");
+    let p = base_path.join(file_name).with_extension("html");
 
     let (status, p) = match p.exists() {
         true => (200, p),
-        false => (404, base_path.join("errors").join("404.html"))
+        false => (404, base_path.join("errors").join("404.html")),
     };
 
     let contents = match fs::read_to_string(p) {

@@ -1,4 +1,7 @@
-use std::{io::{prelude::*, BufReader}, net::TcpStream};
+use std::{
+    io::{prelude::*, BufReader},
+    net::TcpStream,
+};
 
 #[derive(Debug, Default)]
 pub struct Request {
@@ -18,7 +21,7 @@ impl Request {
             .take_while(|line| !line.is_empty());
 
         let request_line = http_request.next().unwrap();
-        let uri = match request_line.split(" ").skip(1).next() {
+        let uri = match request_line.split(' ').nth(1) {
             Some(uri) => uri,
             None => return Err(String::from("Could Not parse Request")),
         };

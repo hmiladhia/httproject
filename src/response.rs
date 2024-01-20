@@ -1,5 +1,4 @@
-use std::fmt::{Display, self};
-
+use std::fmt::{self, Display};
 
 #[derive(Debug, Default)]
 pub struct Response {
@@ -13,11 +12,11 @@ impl Response {
         Self {
             status,
             headers,
-            body
+            body,
         }
     }
 
-    pub fn empty(status: u32) -> Self{
+    pub fn empty(status: u32) -> Self {
         Self {
             status,
             ..Default::default()
@@ -43,7 +42,10 @@ impl Display for Response {
         let status = &self.status;
         let status_line = format!("HTTP/1.1 {status} {status_msg}");
 
-        let formatted = format!("{status_line}\r\n{header}\r\n\r\n{body}\r\n", body=self.body);
+        let formatted = format!(
+            "{status_line}\r\n{header}\r\n\r\n{body}\r\n",
+            body = self.body
+        );
         write!(f, "{formatted}")
     }
 }

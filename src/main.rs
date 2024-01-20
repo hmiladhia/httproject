@@ -1,10 +1,8 @@
 use std::net::TcpListener;
 use std::path::Path;
 
-
 use httproject::handle_connection;
 use httproject::threadpool::ThreadPool;
-
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
