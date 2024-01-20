@@ -35,6 +35,7 @@ impl Display for Response {
 
         let status_msg = match self.status {
             200 => "OK",
+            400 => "BAD REQUEST",
             404 => "NOT FOUND",
             _ => "NOT FOUND",
         };

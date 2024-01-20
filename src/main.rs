@@ -1,6 +1,4 @@
-use std::{
-    net::TcpListener,
-};
+use std::net::TcpListener;
 
 use httproject::handle_connection;
 use httproject::threadpool::ThreadPool;

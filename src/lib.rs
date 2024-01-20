@@ -1,23 +1,21 @@
 use std::{
     fs,
-    io::{prelude::*, BufReader},
     net::TcpStream,
+    io::prelude::*,
     thread,
     time::Duration,
 };
-use crate::response::Response;
 
+use crate::response::Response;
+use crate::request::Request;
 
 pub mod response;
+pub mod request;
 pub mod threadpool;
 
 
-fn get_response(request: Vec<String>) -> Response {
-    let request_line = request.iter().next().unwrap();
-
-    let uri = request_line.split(" ").skip(1).next().unwrap();
-
-    let (status, file_name) = match uri {
+fn get_response(request: &Request) -> Response {
+    let (status, file_name) = match &request.uri[..] {
         "/" => (200, "hello.html"),
         "/sleep" => {
             thread::sleep(Duration::from_secs(5));
@@ -35,18 +33,15 @@ fn get_response(request: Vec<String>) -> Response {
     let headers = vec![format!("Content-Length: {length}")];
 
     Response::new(status, headers, contents)
-    // 
 }
 
 pub fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&mut stream);
-    let http_request: Vec<_> = buf_reader
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
+    let request = Request::from_stream(&mut stream);
 
-    let response = get_response(http_request);
+    let response = match request {
+        Ok(r) => get_response(&r),
+        Err(_) => Response::empty(400),
+    };
 
     stream.write_all(response.to_string().as_bytes()).unwrap();
 }
